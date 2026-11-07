@@ -21,13 +21,13 @@ jobs:
             label: windows-x64
           - os: ubuntu-22.04          # older glibc, so the binary also runs on SteamOS
             label: linux-x64-steamdeck
-          - os: macos-14              # Apple Silicon runner
+          - os: macos-15              # Apple Silicon runner (macos-14 was retired)
             label: macos-arm64
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
 
@@ -59,7 +59,7 @@ jobs:
           cd dist
           ditto -c -k --keepParent "OoT Controller UI Installer.app" "../OoT-Controller-UI-Installer-${{ matrix.label }}.zip"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: installer-${{ matrix.label }}
           path: OoT-Controller-UI-Installer-${{ matrix.label }}.*
@@ -69,7 +69,7 @@ jobs:
     needs: build
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v7
         with:
           path: artifacts
           merge-multiple: true
