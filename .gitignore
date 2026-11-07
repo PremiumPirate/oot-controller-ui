@@ -1,0 +1,16 @@
+# never commit game data or build output
+*.nup
+*.nup.undo
+*.zs
+*.bntx
+*.blarc
+*.bfotf
+*.rsizetable
+romfs/
+Xbox UI/
+out/
+__pycache__/
+*.pyc
+build/
+dist/
+*.spec
