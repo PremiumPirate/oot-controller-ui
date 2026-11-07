@@ -41,6 +41,8 @@ Download the installer for your platform from the **Releases** page and run it. 
 | Steam Deck / Linux (x64) | `…-linux-x64-steamdeck.tar.gz` | In Desktop Mode, extract it, then double-click `OoT-Controller-UI-Installer`. If it doesn't start, right-click it, open *Properties → Permissions* and tick *Is executable*. |
 | macOS (Apple Silicon) | `…-macos-arm64.zip` | Unzip, then right-click the app and choose *Open*, then *Open* again. The app isn't notarised, so a plain double-click is blocked the first time. |
 
+> **Testing status:** the Windows installer is fully tested. The Steam Deck and Mac installers are new and are being tested on real hardware over the next few days. If you hit a problem on either, please [open an issue](https://github.com/PremiumPirate/oot-controller-ui/issues).
+
 The installer walks you through four steps:
 
 1. **Find your game.** It looks for your `.nup` using Lichii's own settings, or you can browse to it. Then it checks the game version.
@@ -98,6 +100,10 @@ The files this tool writes are Nintendo's game files with edits, so don't upload
 - **Action ring.** The `DoCommand_00` layout in `Common…blarc` is moved into the bottom/right diamond. The archive stores 4 copies of it, and all four are patched.
 - **Size table.** The game's resource size table gets a larger entry for the font.
 - **`.nup` format.** It's read using the format described in Lichii's `nup_container.cpp`.
+
+## Built with Claude Code
+
+This project was built with [Claude Code](https://claude.com/claude-code) (Anthropic). Want another controller style, a different game version, or something new? Start with [CLAUDE.md](CLAUDE.md). It explains the code, the safety rules and every file-format detail that took digging to find, so you (or your own Claude Code) can build on it instead of starting from scratch. Pull requests welcome!
 
 ## Credits
 
