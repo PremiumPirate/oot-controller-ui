@@ -2,6 +2,9 @@
 
 **Xbox**, **PS5** or **Steam Deck** button prompts for **The Legend of Zelda: Ocarina of Time (Switch 2)**, built on your PC from **your own game files**. This repository contains only code. It ships no game assets.
 
+> [!IMPORTANT]
+> **One required setup step: swap A and B in Lichii.** The new icons match your controller only if your **bottom face button presses Switch A** and your **right face button presses Switch B**. Lichii's default does the opposite, so open **Emulation → Configure → Controls** and set **A** to your bottom button (Xbox A / PS ✕ / Steam Deck A) and **B** to your right button (Xbox B / PS ○ / Steam Deck B). X and Y stay as they are. Skip this and the prompts will show the wrong buttons.
+
 ## Why a builder instead of edited game files?
 
 Most UI mods are shared as edited copies of the game's own files. This one deliberately isn't:
