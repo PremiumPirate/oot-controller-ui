@@ -30,7 +30,7 @@ A full build takes about 40 s. Most of that is zstd and ASTC encoding of the 244
 | `oot_controller_ui/build.py` | the pipeline: read inputs → check version → font → textures → ring → size table; `STYLES` and `PS_SYMBOL` hold the per-style choices |
 | `oot_controller_ui/known.py` | supported versions (SHA-256 of each input `.zs`), file paths |
 | `oot_controller_ui/formats.py` | `.zs` (zstd + ZsDic dictionaries), SARC, BFTTF (XOR key `0xA6018502`), RESTBL |
-| `oot_controller_ui/nup.py` | Lichii `.nup` reader, reversible patch/undo, post-patch verification |
+| `oot_controller_ui/nup.py` | Lichii `.nup` reader (the build input), plus the legacy reversible patch/undo |
 | `oot_controller_ui/bntx.py` | texture lookup, Switch 2 swizzle (GOB bits 5/6 swapped), BC4 encode, ASTC via `astc-encoder-py` |
 | `oot_controller_ui/glyphs.py` | redraws button glyphs E040–E04C in the External font (fontTools + skia-pathops), `style="xbox"`, `"ps5"` or `"steam"` (Steam Deck: Xbox letters, L1/R1, L2/R2) |
 | `oot_controller_ui/paint.py` | repaints `Controller_Pro1`/`Controller_Pro`, the ring letters (`KeyTexFont*`) and the ocarina icons; `symbol()` draws ✕ ○ △ □ |
@@ -45,7 +45,9 @@ A full build takes about 40 s. Most of that is zstd and ASTC encoding of the 244
 
 - **Paths:** Lichii keeps Eden's user folder: `%APPDATA%\eden` on Windows, `~/.local/share/eden` on Linux and macOS, or a portable `user/` folder. Mods go in `load/0400486024DEC000/<name>/romfs`.
 - **Mod folders:** the installer removes its other style folders when it installs one, so only one style is ever active.
-- **Lichii builds up to 93** don't apply LayeredFS to `.nup` games; `detect.LAST_BUILD_WITHOUT_NUP_MODS` drives the recommendation.
+- **Lichii build 95** (tagged `build-94`) is the first that applies LayeredFS mods to `.nup` games. Builds up to 93 don't. The installer is mod-only since v1.4.0 and warns on old builds (`detect.LAST_BUILD_WITHOUT_NUP_MODS`). `.nup` patching stays in the CLI as `patch-nup`/`undo` (legacy), and the GUI's Restore screen can still undo a v1.3.0 patch.
+- **NSP/XCI players:** the tool never opens encrypted containers (no keys). They dump with Lichii's **Dump RomFS > Full** to `<user>/dump/<TITLE ID>/romfs` (update merged); `detect.find_dumps()` finds that, and `build.open_source()` takes a `.nup` or a folder. A Skeleton dump has empty files, and `DirSource` says so.
+- **Picking the user folder:** `detect.set_user_dir()` accepts Lichii's user folder or the folder holding a portable `user/`.
 - **Packaging:** PyInstaller needs `--collect-all archspec`, because `astc_encoder` loads archspec's CPU JSON at import. Test a frozen build with `<exe> --cli build --romfs DIR --out OUT`.
 - **Building:** PyInstaller can't cross-compile, so each platform is built on its own runner.
 

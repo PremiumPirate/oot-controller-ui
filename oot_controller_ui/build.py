@@ -23,18 +23,36 @@ class NupSource:
             raise SystemExit("missing from the .nup: " + rel)
         return self.nup.read(self.idx[rel])
 
+    def close(self):
+        self.nup.close()
+
 
 class DirSource:
-    """An extracted romfs folder (e.g. from Lichii's 'Extract NUP' or an NSP dump)."""
+    """An extracted game folder: Lichii/Eden's 'Dump RomFS' (works for NSP, XCI and installed
+    games), 'Extract NUP', or any romfs dump. Accepts the romfs folder or the folder above it."""
 
     def __init__(self, path):
+        if os.path.isdir(os.path.join(path, "romfs")):
+            path = os.path.join(path, "romfs")
         self.path = path
 
     def read(self, rel):
         p = os.path.join(self.path, *rel.split("/"))
         if not os.path.exists(p):
-            raise SystemExit("missing from the romfs folder: " + rel)
-        return open(p, "rb").read()
+            raise SystemExit("this folder is missing %s. Choose the game's 'romfs' folder, dumped with "
+                             "'Dump RomFS' set to Full (not Skeleton)." % rel)
+        data = open(p, "rb").read()
+        if not data:
+            raise SystemExit("%s is empty: the RomFS was dumped as Skeleton. Dump it again as Full." % rel)
+        return data
+
+    def close(self):
+        pass
+
+
+def open_source(path):
+    """A .nup file or an extracted game folder."""
+    return DirSource(path) if os.path.isdir(path) else NupSource(path)
 
 
 def identify(files):

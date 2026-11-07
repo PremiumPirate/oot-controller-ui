@@ -2,6 +2,15 @@
 
 **Xbox**, **PS5** or **Steam Deck** button prompts for **The Legend of Zelda: Ocarina of Time (Switch 2)**, built on your PC from **your own game files**. This repository contains only code. It ships no game assets.
 
+## Why a builder instead of edited game files?
+
+Most UI mods are shared as edited copies of the game's own files. This one deliberately isn't:
+
+- **The edited files would still be Nintendo's.** The button prompts live in the game's UI texture bank (about 880 images), its font, its layouts and its size table. Even the controller picture here is Nintendo's drawing with new labels. Uploading edited copies means redistributing the game's copyrighted art, which can be taken down at any time, along with the mod and possibly the uploader's account.
+- **So the download only contains the recipe.** The tool reads the files from your own copy of the game, applies the changes on your PC, and writes a normal mod folder. Nothing from the game is ever uploaded or included in a download.
+- **Your game file isn't modified.** The mod sits in the emulator's mod folder and can be switched off any time. (The old v1.3.0 installer could patch the game file directly, for Lichii builds that couldn't load mods yet. That's no longer needed.)
+- **It also checks your game version.** The tool fingerprints the files before touching anything, so a different game update can't produce a broken mod.
+
 ## What it changes
 
 | Where | Switch | Xbox (`--style xbox`, default) | PS5 (`--style ps5`) | Steam Deck (`--style steam`) |
@@ -29,11 +38,14 @@ The Steam Deck style follows the Deck's own button labels. It also suits other X
   | Y | X (left) | □ (left) |
 
   In yuzu-family emulators (Lichii, Eden…) that usually means **swapping A and B** in the controller settings, because their default maps Switch A to the right-hand button. On a Steam Deck, leave Steam Input on the default gamepad layout and make the same swap in the emulator.
-- **Supported game version.** The patcher checks the files' SHA-256 hashes and refuses to run on anything else. Currently supported: **update v131072**. The installer checks this for you; on the command line, run `check`.
+- **Your game, in one of two forms:**
+  - **A Lichii `.nup` file.** These need **Lichii build 95 or newer**, the first build that loads mods for `.nup` games ("LayeredFS mods now apply to NUP titles"). On build 93 or older, update Lichii, or use the legacy [v1.3.0 installer](https://github.com/PremiumPirate/oot-controller-ui/releases/tag/v1.3.0), which can patch the `.nup` instead.
+  - **An NSP, XCI or installed copy.** First make an extracted copy for the tool to read: right-click the game in Lichii (or Eden), choose **Dump RomFS**, then pick **Full**, not Skeleton. That writes `<user folder>/dump/0400486024DEC000/romfs`, which the installer finds automatically. Mods load for these copies on any Lichii build.
+- **Supported game version.** The tool checks the files' SHA-256 hashes and refuses to run on anything else. Currently supported: **update v131072**. The installer checks this for you; on the command line, run `check`.
 
 ## Easiest: the installer
 
-![The installer: title, find your game, choose your controller, how to install, progress and done](docs/screenshots/installer-overview.jpg)
+![The installer: title, find your game, choose your controller, where it goes, progress and done](docs/screenshots/installer-overview.jpg)
 
 Download the installer for your platform from the **[Releases](https://github.com/PremiumPirate/oot-controller-ui/releases/latest)** page and run it. Python isn't needed.
 
@@ -47,19 +59,17 @@ Download the installer for your platform from the **[Releases](https://github.co
 
 The installer walks you through four steps:
 
-1. **Find your game.** It looks for your `.nup` using Lichii's own settings, or you can browse to it. Then it checks the game version.
+1. **Find your game.** It looks for your `.nup` using Lichii's own settings, and for RomFS dumps in Lichii's `dump` folder. You can also choose either yourself. Then it checks the game version.
 2. **Choose a style:** Xbox, PlayStation 5 or Steam Deck.
-3. **Choose how to install.**
-   - **As a mod:** it writes to Lichii's `load` folder.
-   - **By patching the `.nup`:** for Lichii build 93 and earlier, which don't load mods for `.nup` games. The installer reads Lichii's log and recommends the right option.
-4. **Install.** Takes about a minute.
+3. **Check where it goes.** It installs as a mod in Lichii's mod folder, which it finds automatically. If it can't find it (for example, a portable Lichii), use **Choose folder…**. It also reads Lichii's log and warns you if your build is too old to load mods for `.nup` games.
+4. **Install.** Takes about a minute. Your game file isn't changed.
 
 <p>
   <img src="docs/screenshots/installer-choose-controller.jpg" alt="Choosing Xbox, PlayStation 5 or Steam Deck" width="49%">
   <img src="docs/screenshots/installer-progress.jpg" alt="The ocarina-staff progress bar while installing" width="49%">
 </p>
 
-**Restore / Remove** undoes either kind of install. Mouse, keyboard and Steam Deck controls all work: the d-pad moves, A selects and B goes back, using Steam's default Desktop controls.
+**Restore / Remove** deletes the mod. It can also restore a game file patched by the old v1.3.0 installer. Mouse, keyboard and Steam Deck controls all work: the d-pad moves, A selects and B goes back, using Steam's default Desktop controls.
 
 ## Command line
 
@@ -75,21 +85,21 @@ The installer is also available from the command line: `python -m oot_controller
 # 1. is your version supported?
 python -m oot_controller_ui check --nup "path/to/Ocarina of Time.nup"
 
-# 2a. recommended: build a mod folder (works with any emulator that applies LayeredFS mods)
+# 2. build a mod folder (Lichii build 95+, or any emulator that applies LayeredFS mods)
 python -m oot_controller_ui build --nup "path/to/Ocarina of Time.nup" --out "Xbox UI"
 python -m oot_controller_ui build --nup "path/to/Ocarina of Time.nup" --out "PS5 UI" --style ps5
 python -m oot_controller_ui build --nup "path/to/Ocarina of Time.nup" --out "Steam Deck UI" --style steam
 
-# 2b. or patch a Lichii .nup directly (for builds that don't apply mods to .nup games)
+# legacy: patch the .nup directly, for Lichii build 93 and older (which don't apply mods to .nup games)
 python -m oot_controller_ui patch-nup --nup "path/to/Ocarina of Time.nup"        # add --style ps5 or --style steam
 python -m oot_controller_ui undo      --nup "path/to/Ocarina of Time.nup"
 ```
 
-Each command takes either a `.nup` file (`--nup`) or an extracted romfs folder (`--romfs`), for example the output of Lichii's **Extract NUP**.
+Each command takes either a `.nup` file (`--nup`) or an extracted game folder (`--romfs`), such as Lichii's **Dump RomFS** output for NSP/XCI copies (`…/dump/0400486024DEC000/romfs`) or **Extract NUP**.
 
-**Installing the mod folder (2a).** Copy the `Xbox UI`, `PS5 UI` or `Steam Deck UI` folder (the one that contains `romfs/`) into the emulator's mod folder for title `0400486024DEC000`. For Lichii and Eden that's `<user dir>/load/0400486024DEC000/<folder>/`. Then switch it on or off under the game's **Properties → Add-Ons**. Enable only one UI style at a time, because they replace the same files.
+**Installing the mod folder.** Copy the `Xbox UI`, `PS5 UI` or `Steam Deck UI` folder (the one that contains `romfs/`) into the emulator's mod folder for title `0400486024DEC000`. For Lichii and Eden that's `<user dir>/load/0400486024DEC000/<folder>/`. Then switch it on or off under the game's **Properties → Add-Ons**. Enable only one UI style at a time, because they replace the same files.
 
-**Patching the `.nup` (2b).**
+**Patching the `.nup` (legacy).** Only needed on Lichii build 93 and older.
 - **What it does:** the new files are appended to the end of the `.nup` (about +70 MB), and its file table is pointed at them.
 - **Undo:** before changing anything, it saves the original header and table to `<game>.nup.undo`. `undo` uses that file to restore the original byte for byte, and running `patch-nup` again re-patches from the original. That's also how you switch between styles.
 - **Before you run it:** close Lichii, and keep your own backup anyway.

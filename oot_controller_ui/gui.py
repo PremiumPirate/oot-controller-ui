@@ -74,7 +74,7 @@ class App:
         self.root.after(100, self._poll)
         # state
         self.games, self.game, self.game_status, self.patched, self.supported = None, None, "", False, False
-        self.style, self.method = "xbox", None
+        self.style = "xbox"
         self.title_screen()
 
     # ------------------------------------------------------------ plumbing
@@ -162,7 +162,7 @@ class App:
 
     def game_screen(self):
         self.clear()
-        self.heading("Find your game", "Pick your Ocarina of Time .nup file (from Lichii's 'Convert to NUP').")
+        self.heading("Find your game", "Your .nup file, or a 'Dump RomFS' folder for NSP / XCI copies.")
         self.back_action = self.title_screen
         if self.games is None:
             self.img(theme.text("Looking for your games…", "light", 18, theme.INK_SOFT), W // 2, 250, "n")
@@ -174,9 +174,13 @@ class App:
             self._game_card(path, y)
             y += 92
         if not self.games:
-            self.img(theme.paragraph("I couldn't find a .nup automatically. Choose it with Browse.", 560,
-                                     "light", 18, theme.INK_SOFT), W // 2, 200, "n")
-        self.btn("Browse…", W // 2 - 110, max(y, 280) + 8, self._browse, primary=False)
+            self.img(theme.paragraph(
+                "I couldn't find your game automatically. Choose your .nup file, or for an NSP / XCI copy, "
+                "right-click the game in Lichii, choose Dump RomFS > Full, then pick the 'romfs' folder it makes.",
+                700, "light", 17, theme.INK_SOFT), W // 2, 180, "n")
+        by = max(y, 290) + 8
+        self.btn("Choose .nup…", W // 2 - 240, by, self._browse, primary=False, w=230)
+        self.btn("Choose folder…", W // 2 + 10, by, self._browse_folder, primary=False, w=230)
         if self.game_status:
             col = theme.GREEN if self.supported else (theme.RED if not self.patched else theme.INK_SOFT)
             self.img(theme.paragraph(self.game_status, 760, "body", 16, col), W // 2, H - 168, "n")
@@ -191,7 +195,10 @@ class App:
             self.game_screen()
 
     def _game_card(self, path, y):
-        name, folder = os.path.basename(path), os.path.dirname(path)
+        if os.path.isdir(path) or not path.lower().endswith(".nup"):
+            name, folder = "Extracted game folder (Dump RomFS)", path
+        else:
+            name, folder = os.path.basename(path), os.path.dirname(path)
         def render(hot, sel, en):
             p = theme.panel(760, 82, selected=sel, hover=hot)
             p.alpha_composite(theme.text(name if len(name) < 64 else name[:61] + "…", "body", 18, theme.INK), (22, 12))
@@ -208,34 +215,43 @@ class App:
                 self.games.insert(0, p)
             self._choose_game(p)
 
+    def _browse_folder(self):
+        p = filedialog.askdirectory(title="Choose the game's 'romfs' folder (from Lichii's Dump RomFS > Full)")
+        if p:
+            p = os.path.normpath(p)
+            if self.games is not None and p not in self.games:
+                self.games.insert(0, p)
+            self._choose_game(p)
+
     def _choose_game(self, path):
         self.game, self.supported, self.patched = path, False, False
-        self.game_status = "Checking this file…"
+        self.game_status = "Checking this folder…" if os.path.isdir(path) else "Checking this file…"
         self.game_screen()
 
         def check():
-            if os.path.exists(path + ".undo"):
+            if os.path.isfile(path) and os.path.exists(path + ".undo"):
                 return ("patched", None)
-            src = build.NupSource(path)
+            src = build.open_source(path)
             try:
                 files = {rel: src.read(rel) for rel in build.INPUTS}
             finally:
-                src.nup.close()
+                src.close()
             return ("ok", build.identify(files))
 
         def done(res):
             kind, ver = res
             if kind == "patched":
                 self.patched = True
-                self.game_status = ("This file already has a controller UI patch. It will be restored to the "
-                                    "original first, then the new style is applied.")
+                self.game_status = ("This file has a patch from installer v1.3.0. It will be restored to the "
+                                    "original first, then the new style is installed as a mod.")
             else:
                 self.supported = True
                 self.game_status = "Supported game version (%s). Ready to go." % ver
             self.game_screen()
 
         def fail(msg):
-            self.game_status = "Can't use this file: " + msg.split("\n")[0]
+            what = "folder" if os.path.isdir(path) else "file"
+            self.game_status = "Can't use this %s: %s" % (what, msg.split("\n")[0])
             self.game_screen()
 
         self.bg(check, done, fail)
@@ -251,7 +267,7 @@ class App:
             "Tip: set the emulator so the bottom face button is Switch A. In Lichii, swap A and B "
             "in the controller settings (Emulation > Configure > Controls).", 780, "light", 16, theme.INK_SOFT),
             W // 2, 440, "n")
-        self.nav(back=self.game_screen, next_label="Next", next_action=self.method_screen)
+        self.nav(back=self.game_screen, next_label="Next", next_action=self.location_screen)
         for w in self.widgets:
             if w.selected:
                 self.set_focus(w)
@@ -278,52 +294,43 @@ class App:
         w = self.add(Widget(self, x, y, render, pick, selected=(key == self.style)))
         w.style_key = key
 
-    def method_screen(self):
+    def location_screen(self):
         self.clear()
-        self.heading("How should it be installed?")
+        self.heading("Where should it go?", "It's installed as a mod in Lichii's mod folder.")
         root = detect.mod_root()
         bnum = detect.lichii_build()
         old = bnum is not None and bnum <= detect.LAST_BUILD_WITHOUT_NUP_MODS
-        if self.method is None:
-            self.method = "patch" if (old or not root) else "mod"
         folder = os.path.join(root, detect.UI_FOLDERS[self.style]) if root else None
-        opts = [
-            ("mod", "Install as a mod", "Lichii/Eden loads it from its mod folder; switch it off any time in the "
-             "game's Properties > Add-Ons." + ("\n" + folder if folder else "\nLichii's user folder wasn't found."),
-             bool(root)),
-            ("patch", "Patch the game file", "Writes the changes into your .nup (about +70 MB). Needed for Lichii "
-             "build 93 and earlier, which don't load mods for .nup games. Fully reversible.", True),
-        ]
-        y = 140
-        best = "patch" if (old or not root) else "mod"
-        for key, title, desc, en in opts:
-            self._method_card(key, title, desc, en, y, key == best)
-            y += 160
-        note = ("Detected Lichii build %d." % bnum) if bnum else "Couldn't detect your Lichii build."
-        self.img(theme.text(note, "light", 15, theme.INK_SOFT), W // 2, 470, "n")
-        self.nav(back=self.style_screen, next_label="Install", next_action=self.install)
-        for w in self.widgets:
-            if w.selected:
-                self.set_focus(w)
 
-    def _method_card(self, key, title, desc, enabled, y, recommended):
-        def render(hot, sel, en):
-            p = theme.panel(780, 146, selected=sel and en, hover=hot)
-            t = theme.text(title + ("   (recommended for you)" if recommended else ""), "title", 21,
-                           theme.INK if en else theme.INK_SOFT, 800)
-            p.alpha_composite(t, (24, 12))
-            p.alpha_composite(theme.paragraph(desc, 730, "light", 15, theme.INK if en else theme.INK_SOFT), (24, 52))
-            return p
+        panel = theme.panel(780, 150, selected=bool(root))
+        panel.alpha_composite(theme.text("Install as a mod", "title", 21, theme.INK, 800), (24, 12))
+        if folder:
+            desc = ("Lichii loads it from here. You can switch it off any time in the game's "
+                    "Properties > Add-Ons:\n" + folder)
+        else:
+            desc = ("Lichii's user folder wasn't found. Choose it below: it's the folder that contains "
+                    "'load' and 'config', or the Lichii folder that has a 'user' folder inside.")
+        panel.alpha_composite(theme.paragraph(desc, 730, "light", 15, theme.INK), (24, 52))
+        self.img(panel, W // 2, 140, "n")
 
-        def pick():
-            self.method = key
-            for w in self.widgets:
-                if getattr(w, "method_key", None):
-                    w.selected = w.method_key == key
-                    w.draw()
-        w = self.add(Widget(self, (W - 780) // 2, y, render, pick, enabled=enabled,
-                            selected=(key == self.method and enabled)))
-        w.method_key = key
+        if old:
+            note, col = ("Lichii build %d doesn't load mods for .nup games. Update Lichii to build %d or newer "
+                         "(or use installer v1.3.0, which can patch the game file instead)."
+                         % (bnum, detect.FIRST_BUILD_WITH_NUP_MODS), theme.RED)
+        elif bnum:
+            note, col = "Detected Lichii build %d: mods load for .nup games." % bnum, theme.GREEN
+        else:
+            note, col = ("Couldn't detect your Lichii build. Mods need build %d or newer."
+                         % detect.FIRST_BUILD_WITH_NUP_MODS), theme.INK_SOFT
+        self.img(theme.paragraph(note, 780, "body", 15, col), W // 2, 312, "n")
+
+        def choose():
+            p = filedialog.askdirectory(title="Choose Lichii's user folder (or the Lichii folder with 'user' inside)")
+            if p:
+                detect.set_user_dir(p)
+                self.location_screen()
+        self.btn("Choose folder…", W // 2 - 115, 392, choose, primary=False, w=230)
+        self.nav(back=self.style_screen, next_label="Install", next_action=self.install, next_enabled=bool(root))
 
     # ------------------------------------------------------------ install
     def install(self):
@@ -335,29 +342,26 @@ class App:
         self.img(theme.text("This takes about a minute. Please keep Lichii closed.", "light", 15, theme.INK_SOFT),
                  W // 2, 392, "n")
         self._animate()
-        game, style, method = self.game, self.style, self.method
+        game, style = self.game, self.style
 
         def progress(i, label):
             self.q.put((self._set_step, (i, label)))
 
         def work():
-            if os.path.exists(game + ".undo"):
-                nup.undo(game)
-            src = build.NupSource(game)
+            if os.path.isfile(game) and os.path.exists(game + ".undo"):
+                nup.undo(game)          # a patch from installer v1.3.0: back to stock first
+            src = build.open_source(game)
             try:
                 out = build.build(src, font_set("selawik"), style, log=lambda *_: None, progress=progress)
             finally:
-                src.nup.close()
+                src.close()
             progress(4, build.STEPS[4])
-            if method == "mod":
-                root = detect.mod_root()
-                for other in detect.installed_mods():
-                    shutil.rmtree(other)
-                target = os.path.join(root, detect.UI_FOLDERS[style])
-                build.write_mod(out, target)
-                return ("mod", target)
-            nup.apply(game, out)
-            return ("patch", game)
+            root = detect.mod_root()
+            for other in detect.installed_mods():
+                shutil.rmtree(other)    # only one style at a time
+            target = os.path.join(root, detect.UI_FOLDERS[style])
+            build.write_mod(out, target)
+            return ("mod", target)
 
         self.bg(work, self.done_screen)
 
@@ -383,21 +387,16 @@ class App:
         self.clear()
         self.heading("All set!", STYLE_INFO[self.style][0] + " buttons are ready")
         self.img(theme.staff(820, 5), W // 2, 150, "n")
-        if kind == "mod":
-            msg = ("Installed as a mod in:\n%s\n\nStart Lichii and play. You can switch it off in the game's "
-                   "Properties > Add-Ons." % path)
-        else:
-            msg = ("Your game file was patched. Start Lichii and play.\nTo undo it, run this installer again "
-                   "and choose Restore / Remove.")
+        msg = ("Installed as a mod in:\n%s\n\nStart Lichii and play. You can switch it off in the game's "
+               "Properties > Add-Ons. Your game file wasn't changed." % path)
         self.img(theme.paragraph(msg, 760, "body", 17, theme.INK), W // 2, 320, "n")
-        if kind == "mod":
-            self.btn("Open folder", 48, H - 92, lambda: detect.open_folder(path), primary=False, w=200)
+        self.btn("Open folder", 48, H - 92, lambda: detect.open_folder(path), primary=False, w=200)
         self.btn("Finish", W - 48 - 220, H - 92, self.root.destroy)
 
     # ------------------------------------------------------------ restore
     def restore_screen(self):
         self.clear()
-        self.heading("Restore / Remove", "Undo what this installer did.")
+        self.heading("Restore / Remove", "Remove the mod, or restore a game file patched by v1.3.0.")
         self.back_action = self.title_screen
         mods = detect.installed_mods()
         if not (self.game and os.path.exists(self.game + ".undo")):

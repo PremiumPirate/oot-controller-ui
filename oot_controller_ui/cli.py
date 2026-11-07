@@ -25,9 +25,9 @@ def main(argv=None):
     sub = ap.add_subparsers(dest="cmd", required=True)
     for name, hlp in [("gui", "open the installer window"),
                       ("check", "check that your game version is supported"),
-                      ("build", "write a LayeredFS mod folder (recommended)"),
-                      ("patch-nup", "write the changes into a Lichii .nup (reversible)"),
-                      ("undo", "restore a patched .nup to the original")]:
+                      ("build", "write a mod folder (Lichii build 95+ loads it for .nup games)"),
+                      ("patch-nup", "legacy: write the changes into a Lichii .nup, for Lichii build 93 and older"),
+                      ("undo", "restore a .nup patched with patch-nup to the original")]:
         p = sub.add_parser(name, help=hlp)
         p.add_argument("--nup", help="your Lichii .nup game file")
         if name in ("check", "build"):

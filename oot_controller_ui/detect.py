@@ -20,8 +20,24 @@ def _env_dir(var, fallback):
     return v if v else os.path.join(os.path.expanduser("~"), fallback)
 
 
+_override = None
+
+
+def set_user_dir(path):
+    """Use a folder the user picked: Lichii's user folder itself, or the folder that holds a
+    portable 'user' folder (next to lichii.exe)."""
+    global _override
+    path = os.path.normpath(path)
+    if os.path.isdir(os.path.join(path, "user")):
+        path = os.path.join(path, "user")
+    _override = path
+    return path
+
+
 def user_dirs():
     """Candidate Eden/Lichii user folders that exist, most likely first."""
+    if _override:
+        return [_override]
     c = []
     if sys.platform == "win32":
         appdata = os.environ.get("APPDATA")
@@ -84,7 +100,22 @@ def find_games():
         if os.path.isfile(p) and _is_oot_nup(p):
             out.append(p)
     # Ocarina of Time first (file name hint), then the rest
-    return sorted(out, key=lambda p: ("ocarina" not in p.lower(), p.lower()))
+    out = sorted(out, key=lambda p: ("ocarina" not in p.lower(), p.lower()))
+    return out + find_dumps()
+
+
+def find_dumps():
+    """RomFS dumps made with Lichii's 'Dump RomFS' (<user>/dump/<TITLE ID>/romfs), which is how
+    NSP/XCI players give the builder their game files."""
+    tid = "%016X" % known.TITLE_ID
+    out = []
+    for d in user_dirs():
+        for name in (tid, tid.lower()):
+            p = os.path.normpath(os.path.join(d, "dump", name, "romfs"))
+            if os.path.isfile(os.path.join(p, *known.FONT.split("/")) + ".zs") and \
+                    os.path.normcase(p) not in [os.path.normcase(o) for o in out]:
+                out.append(p)
+    return out
 
 
 def lichii_build():
@@ -101,8 +132,10 @@ def lichii_build():
     return None
 
 
-# Lichii builds up to this one don't apply LayeredFS mods to .nup games (fixed after it).
+# Lichii builds up to this one don't apply LayeredFS mods to .nup games. Build 95 (tagged
+# build-94) added it: "LayeredFS mods now apply to NUP titles" (Lichii PR #203).
 LAST_BUILD_WITHOUT_NUP_MODS = 93
+FIRST_BUILD_WITH_NUP_MODS = 95
 
 
 def mod_root():
