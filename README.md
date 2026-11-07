@@ -33,7 +33,9 @@ The Steam Deck style follows the Deck's own button labels. It also suits other X
 
 ## Easiest: the installer
 
-Download the installer for your platform from the **Releases** page and run it. Python isn't needed.
+![The installer: title, find your game, choose your controller, how to install, progress and done](docs/screenshots/installer-overview.jpg)
+
+Download the installer for your platform from the **[Releases](https://github.com/PremiumPirate/oot-controller-ui/releases/latest)** page and run it. Python isn't needed.
 
 | Platform | File | How to run |
 |---|---|---|
@@ -51,6 +53,11 @@ The installer walks you through four steps:
    - **As a mod:** it writes to Lichii's `load` folder.
    - **By patching the `.nup`:** for Lichii build 93 and earlier, which don't load mods for `.nup` games. The installer reads Lichii's log and recommends the right option.
 4. **Install.** Takes about a minute.
+
+<p>
+  <img src="docs/screenshots/installer-choose-controller.jpg" alt="Choosing Xbox, PlayStation 5 or Steam Deck" width="49%">
+  <img src="docs/screenshots/installer-progress.jpg" alt="The ocarina-staff progress bar while installing" width="49%">
+</p>
 
 **Restore / Remove** undoes either kind of install. Mouse, keyboard and Steam Deck controls all work: the d-pad moves, A selects and B goes back, using Steam's default Desktop controls.
 
