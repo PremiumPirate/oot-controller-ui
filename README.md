@@ -50,7 +50,7 @@ The Steam Deck style follows the Deck's own button labels. It also suits other X
 
 ![The installer: title, find your game, choose your controller, where it goes, progress and done](docs/screenshots/installer-overview.jpg)
 
-Download the installer for your platform from the **[Releases](https://github.com/PremiumPirate/oot-controller-ui/releases/latest)** page and run it. Python isn't needed.
+Download the installer for your platform from the **[Releases](https://github.com/PremiumPirate/oot-controller-ui/releases/latest)** page and run it. Python isn't needed. It's also on **[GameBanana](https://gamebanana.com/mods/737503)**.
 
 | Platform | File | How to run |
 |---|---|---|
